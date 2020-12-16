@@ -5,7 +5,7 @@ A project "skeleton" has been provided containing a single controller with an In
 
 A set of simple views and their associated view models has been provided. Your focus should be on the back-end code. You will be working with a public RESTful API that returns results JSON-formatted data sets based on the 7 Star Wars films. The documentation for querying the API can be found at https://swapi.dev/documentation. (Note that this URL has changed without notice in the past, and could change again in the future. If this link does not work, and a Google search doesn't turn up a new location, please let us know!')
 
-Your task is to write the backend code needed to build out the provided View Models for each of the views. You may query the Star Wars API using any built-in .NET classes you would like for making web requests. Do not use RestSharp or any other 3rd-party library/packages to query the API. Do not plagiarize anyone's existing code.'
+Your task is to write the backend code needed to build out the provided View Models for each of the views. You may query the Star Wars API using any built-in .NET classes you would like for making web requests. Do not use RestSharp or any other 3rd-party library/packages to query the API. Do not plagiarize anyone's existing code.
 
 General Guidelines and Tips
 ---------------------------
