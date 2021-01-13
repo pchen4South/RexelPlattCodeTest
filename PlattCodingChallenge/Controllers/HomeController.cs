@@ -29,11 +29,10 @@ namespace PlattCodingChallenge.Controllers
 
 
 
-			public ActionResult GetPlanetById(int planetid)
+		public async Task<ActionResult> GetPlanetById(int planetid)
 		{
 			var model = new SinglePlanetViewModel();
-
-			// TODO: Implement this controller action
+			model = await _api.GetPlanetById(planetid);
 
 			return View(model);
 		}

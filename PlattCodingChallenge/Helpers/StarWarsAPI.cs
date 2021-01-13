@@ -46,7 +46,20 @@ namespace PlattCodingChallenge.Helpers
 			return allPlanets;
 		}
 
-		
+		public async Task<SinglePlanetViewModel> GetPlanetById(int planetid) {
+			string url = _APIBaseURL + "planets/" + planetid.ToString() + "/";
+			
+			using (var httpClient = new HttpClient())
+			{
+				SinglePlanetViewModel responseObject = new SinglePlanetViewModel();
+				var response = await httpClient.GetAsync(url);
+				string apiResponse = await response.Content.ReadAsStringAsync();
+				responseObject = JsonConvert.DeserializeObject<SinglePlanetViewModel>(apiResponse);
+				return responseObject;
+			}
+		}
+
+
 
 
 	}
