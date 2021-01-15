@@ -23,6 +23,30 @@ namespace PlattCodingChallenge.Models
 		[JsonProperty("orbital_period")]
 		public string LengthOfYear { get; set; }
 
+		[JsonProperty("url")]
+		public string URL { get; set; }
+
 		public string FormattedPopulation => Population == "unknown" ? "unknown" : long.Parse(Population).ToString("N0");
+
+		[JsonProperty("residents")]
+		public List<string> ResidentURLs { get; set; }
+
+
+		public int PlanetID {
+			get {
+				try
+				{
+					string[] urlSplit = URL.Split(new string[] { "http://swapi.dev/api/planets/" }, StringSplitOptions.None);
+					string ID = urlSplit[1].TrimEnd('/');
+					return Int32.Parse(ID);
+				}
+				catch {
+					return -1;
+				}
+			}
+		
+		}
+
+
     }
 }

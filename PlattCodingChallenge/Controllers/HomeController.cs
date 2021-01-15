@@ -31,17 +31,15 @@ namespace PlattCodingChallenge.Controllers
 
 		public async Task<ActionResult> GetPlanetById(int planetid)
 		{
-			var model = new SinglePlanetViewModel();
-			model = await _api.GetPlanetById(planetid);
-
+			var model = await _api.GetPlanetById(planetid);
 			return View(model);
 		}
 
-		public ActionResult GetResidentsOfPlanet(string planetname)
+		public async Task<ActionResult> GetResidentsOfPlanet(string planetname)
 		{
-			var model = new PlanetResidentsViewModel();
-
-			// TODO: Implement this controller action
+			//var model = new PlanetResidentsViewModel();
+			var model = await _api.GetResidentsOfPlanetAsync(planetname);
+			model.Residents = model.Residents.OrderBy(x => x.Name).ToList();
 
 			return View(model);
 		}

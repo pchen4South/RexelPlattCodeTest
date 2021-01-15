@@ -12,38 +12,43 @@ namespace PlattCodingChallenge.Helpers
     public class StarWarsAPI
     {
 		private readonly string _APIBaseURL = "https://swapi.dev/api/";
+		
 
-		public class AllPlanetsJsonObject
+		public async Task<AllPlanetsViewModel> GetAllPlanets(bool refreshCache = false)
 		{
-			public int count { get; set; }
-			public string next { get; set; }
-			public string previous { get; set; }
-
-			[JsonProperty("results")]
-			public List<PlanetDetailsViewModel> details = new List<PlanetDetailsViewModel>();
-		}
-
-		public async Task<AllPlanetsViewModel> GetAllPlanets()
-		{
-			string url = _APIBaseURL + "planets/";
 			AllPlanetsViewModel allPlanets = new AllPlanetsViewModel();
 
-			using (var httpClient = new HttpClient())
-			{			
-                var response = await httpClient.GetAsync(url);
-                string apiResponse = await response.Content.ReadAsStringAsync();
-				AllPlanetsJsonObject responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
-				allPlanets.Planets.AddRange(responseObject.details);
+			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
+			if (PlanetsCache.GetPlanetsFromCache().Count() == 0 || refreshCache) {
+				await CallGetAllPlanetsAsync();
+			}
 
-				while (responseObject.next != null) {
+			allPlanets.Planets = PlanetsCache.GetPlanetsFromCache();
+			allPlanets.CalculateAverageDiameter();
+			return allPlanets;
+		}
+
+		private async Task CallGetAllPlanetsAsync() {
+			//Reset Cache
+			PlanetsCache.ResetCache();
+			
+			string url = _APIBaseURL + "planets/";
+			using (var httpClient = new HttpClient())
+			{
+				var response = await httpClient.GetAsync(url);
+				string apiResponse = await response.Content.ReadAsStringAsync();
+				AllPlanetsJsonObject responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
+				PlanetsCache.AddRangeToCache(responseObject.details);
+
+				while (responseObject.next != null)
+				{
 					response = await httpClient.GetAsync(responseObject.next);
 					apiResponse = await response.Content.ReadAsStringAsync();
 					responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
-					allPlanets.Planets.AddRange(responseObject.details);
+					PlanetsCache.AddRangeToCache(responseObject.details);
 				}
 
-            }
-			return allPlanets;
+			}
 		}
 
 		public async Task<SinglePlanetViewModel> GetPlanetById(int planetid) {
@@ -59,8 +64,41 @@ namespace PlattCodingChallenge.Helpers
 			}
 		}
 
+        public async Task<PlanetResidentsViewModel> GetResidentsOfPlanetAsync(string planetname)
+        {
+            if (PlanetsCache.GetPlanetsFromCache().Count() == 0)
+            {
+                await CallGetAllPlanetsAsync();
+            }
+            PlanetResidentsViewModel planetResidents = new PlanetResidentsViewModel();
+
+            var planetsCache = PlanetsCache.GetPlanetsFromCache();
+            PlanetDetailsViewModel planetDetail = planetsCache.Where(x => x.Name == planetname).FirstOrDefault();
+
+			if (planetDetail != null) {
+				var residentURLS = planetDetail.ResidentURLs;
+				List<ResidentSummary> residents = new List<ResidentSummary>();
+
+				foreach (var url in residentURLS) {
+					using (var httpClient = new HttpClient())
+					{
+						ResidentSummary responseObject = new ResidentSummary();
+						var response = await httpClient.GetAsync(url);
+						string apiResponse = await response.Content.ReadAsStringAsync();
+						responseObject = JsonConvert.DeserializeObject<ResidentSummary>(apiResponse);
+						residents.Add(responseObject);
+					}
+				}
+
+				planetResidents.Residents = residents;
+
+			}
+
+			return planetResidents;
+        }
 
 
 
-	}
+
+    }
 }
