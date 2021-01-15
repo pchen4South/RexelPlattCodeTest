@@ -9,7 +9,7 @@ namespace PlattCodingChallenge.Controllers
 
 	public class HomeController : Controller
 	{
-		private StarWarsAPI _api = new StarWarsAPI();
+		private readonly StarWarsAPI _api = new StarWarsAPI();
 
 		public ActionResult Index()
 		{
@@ -27,8 +27,6 @@ namespace PlattCodingChallenge.Controllers
 			return View(model);
 		}
 
-
-
 		public async Task<ActionResult> GetPlanetById(int planetid)
 		{
 			var model = await _api.GetPlanetById(planetid);
@@ -37,18 +35,20 @@ namespace PlattCodingChallenge.Controllers
 
 		public async Task<ActionResult> GetResidentsOfPlanet(string planetname)
 		{
-			//var model = new PlanetResidentsViewModel();
 			var model = await _api.GetResidentsOfPlanetAsync(planetname);
 			model.Residents = model.Residents.OrderBy(x => x.Name).ToList();
 
 			return View(model);
 		}
 
-		public ActionResult VehicleSummary()
+		public async Task<ActionResult> VehicleSummary()
 		{
 			var model = new VehicleSummaryViewModel();
-
-			// TODO: Implement this controller action
+			model = await _api.GetVehicleSummaryAsync();
+			model.Details = model.Details
+								.OrderByDescending(x => x.VehicleCount)
+								.ThenByDescending(x => x.AverageCost)
+								.ToList();
 
 			return View(model);
 		}
