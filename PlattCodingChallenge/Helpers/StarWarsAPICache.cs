@@ -9,7 +9,7 @@ namespace PlattCodingChallenge.Helpers
     public static class StarWarsAPICache
     {
         private static List<PlanetDetailsViewModel> Planets = new List<PlanetDetailsViewModel>();
-        private static List<VehicleDetailModel> Vehicles = new List<VehicleDetailModel>();
+        private static List<VehicleDetailViewModel> Vehicles = new List<VehicleDetailViewModel>();
         private static List<StarshipDetailsViewModel> Starships = new List<StarshipDetailsViewModel>();
 
         public static dynamic GetData<T>(string type) {
@@ -33,7 +33,7 @@ namespace PlattCodingChallenge.Helpers
                     Planets = (List<PlanetDetailsViewModel>)data;
                     break;
                 case "Vehicles":
-                    Vehicles = (List<VehicleDetailModel>)data; ;
+                    Vehicles = (List<VehicleDetailViewModel>)data; ;
                     break;
                 case "Starships":
                     Starships = (List<StarshipDetailsViewModel>)data; ;
@@ -51,7 +51,7 @@ namespace PlattCodingChallenge.Helpers
                     Planets.AddRange((List<PlanetDetailsViewModel>)data);
                     break;
                 case "Vehicles":
-                    Vehicles.AddRange((List<VehicleDetailModel>)data);
+                    Vehicles.AddRange((List<VehicleDetailViewModel>)data);
                     break;
                 case "Starships":
                     Starships.AddRange((List<StarshipDetailsViewModel>)data);
@@ -69,7 +69,7 @@ namespace PlattCodingChallenge.Helpers
                     Planets = new List<PlanetDetailsViewModel>();
                     break;
                 case "Vehicles":
-                    Vehicles = new List<VehicleDetailModel>();
+                    Vehicles = new List<VehicleDetailViewModel>();
                     break;
                 case "Starships":
                     Starships = new List<StarshipDetailsViewModel>();

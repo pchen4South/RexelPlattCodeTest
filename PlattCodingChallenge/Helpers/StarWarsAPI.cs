@@ -75,7 +75,7 @@ namespace PlattCodingChallenge.Helpers
 		public async Task<VehicleSummaryViewModel> GetVehicleSummaryAsync(bool refreshCache = false)
 		{
 			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
-			if (StarWarsAPICache.GetData<List<VehicleDetailModel>>("Vehicles").Count == 0 || refreshCache)
+			if (StarWarsAPICache.GetData<List<VehicleDetailViewModel>>("Vehicles").Count == 0 || refreshCache)
 			{
 				await CallGetAllVehiclesAsync();
 			}
@@ -83,6 +83,30 @@ namespace PlattCodingChallenge.Helpers
 			VehicleSummaryViewModel allVehicles = ParseVehicleStats();
 
 			return allVehicles;
+		}
+
+		// Returns ManufacturerSummaryViewModel with a List of StarshipDetailsViewModel 
+		//param: <bool> refreshCache - can force a call to the API, ignoring the cache
+		public async Task<List<ManufacturerSummaryViewModel>> GetManufacturersOfStarshipsAndVehiclesAsync(bool refreshCache = false)
+		{
+			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
+			if (StarWarsAPICache.GetData<List<VehicleDetailViewModel>>("Vehicles").Count == 0 || refreshCache)
+			{
+				await CallGetAllVehiclesAsync();
+			}
+
+			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
+			if (StarWarsAPICache.GetData<List<StarshipDetailsViewModel>>("Starships").Count == 0 || refreshCache)
+			{
+				await CallGetAllStarshipsAsync();
+			}
+
+			List<VehicleDetailViewModel> allVehicles = StarWarsAPICache.GetData<List<VehicleDetailViewModel>>("Vehicles");
+			List<StarshipDetailsViewModel> allStarships = StarWarsAPICache.GetData<List<StarshipDetailsViewModel>>("Starships");
+
+			List<ManufacturerSummaryViewModel> manufacturerSummaries = ParseVehiclesAndStarships(allVehicles, allStarships);
+			return manufacturerSummaries;
+
 		}
 
 		#region Helpers
@@ -145,14 +169,38 @@ namespace PlattCodingChallenge.Helpers
 			}
 		}
 
+		//Helper to make the call to the API to Get all vehicles
+		private async Task CallGetAllStarshipsAsync()
+		{
+			//Reset Cache
+			StarWarsAPICache.ResetCache("Starships");
+
+			string url = _APIBaseURL + "starships/";
+			AllStarshipsJsonObject responseObject = new AllStarshipsJsonObject();
+
+			using (var httpClient = new HttpClient())
+			{
+
+				while (responseObject.next != null || !responseObject.loaded)
+				{
+					var response = await httpClient.GetAsync(responseObject.loaded ? responseObject.next : url);
+					string apiResponse = await response.Content.ReadAsStringAsync();
+					responseObject = JsonConvert.DeserializeObject<AllStarshipsJsonObject>(apiResponse);
+					responseObject.loaded = true;
+					StarWarsAPICache.AddRangeToData("Starships", responseObject.details);
+				}
+			}
+		}
+
+
 		// Helper to parse the vehicle data
 		// Returns VehicleSummaryViewModel
 		private VehicleSummaryViewModel ParseVehicleStats()
 		{
 			VehicleSummaryViewModel allVehicles = new VehicleSummaryViewModel();
 			List<VehicleStatsViewModel> stats = new List<VehicleStatsViewModel>();
-			List<VehicleDetailModel> vehicleDetails = StarWarsAPICache.GetData<List<VehicleDetailModel>>("Vehicles");
-			List<VehicleDetailModel> knownCostVehicles = vehicleDetails.Where(x => x.CostInCredits != "unknown").ToList();
+			List<VehicleDetailViewModel> vehicleDetails = StarWarsAPICache.GetData<List<VehicleDetailViewModel>>("Vehicles");
+			List<VehicleDetailViewModel> knownCostVehicles = vehicleDetails.Where(x => x.CostInCredits != "unknown").ToList();
 
 			foreach (var v in knownCostVehicles)
 			{
@@ -185,6 +233,56 @@ namespace PlattCodingChallenge.Helpers
 			allVehicles.ManufacturerCount = stats.Count();
 
 			return allVehicles;
+		}
+
+
+		private List<ManufacturerSummaryViewModel> ParseVehiclesAndStarships(List<VehicleDetailViewModel> allVehicles, List<StarshipDetailsViewModel> allStarships)
+		{
+			List<ManufacturerSummaryViewModel> manufacturerSummaries = new List<ManufacturerSummaryViewModel>();
+			List<string> manufacturersOfBoth = (from veh in allVehicles
+												join ships in allStarships
+												on veh.Manufacturer equals ships.Manufacturer
+												select veh.Manufacturer).ToList();
+
+
+			foreach (VehicleDetailViewModel v in allVehicles.Where(x => manufacturersOfBoth.Contains(x.Manufacturer)))
+			{
+				var existingSummary = manufacturerSummaries.Where(x => x.ManufacturerName == v.Manufacturer).FirstOrDefault();
+
+				if (existingSummary == null)
+				{
+					existingSummary = new ManufacturerSummaryViewModel();
+					existingSummary.ManufacturerName = v.Manufacturer;
+					existingSummary.VehicleCount = 1;
+					manufacturerSummaries.Add(existingSummary);
+				}
+				else
+				{
+					existingSummary.VehicleCount += 1;
+				}
+				existingSummary.Vehicles.Add(v);
+			}
+
+			foreach (StarshipDetailsViewModel s in allStarships.Where(x => manufacturersOfBoth.Contains(x.Manufacturer)))
+			{
+				var existingSummary = manufacturerSummaries.Where(x => x.ManufacturerName == s.Manufacturer).FirstOrDefault();
+
+				if (existingSummary == null)
+				{
+					existingSummary = new ManufacturerSummaryViewModel();
+					existingSummary.ManufacturerName = s.Manufacturer;
+					existingSummary.StarshipCount = 1;
+					manufacturerSummaries.Add(existingSummary);
+				}
+				else
+				{
+					existingSummary.StarshipCount += 1;
+				}
+				existingSummary.Starships.Add(s);
+			}
+
+
+			return manufacturerSummaries;
 		}
 
 		#endregion

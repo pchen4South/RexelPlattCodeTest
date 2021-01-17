@@ -52,10 +52,12 @@ namespace PlattCodingChallenge.Controllers
 			return View(model);
 		}
 
-		public async Task<ActionResult> GetStarshipPilotsWithMultipleCrafts() {
-			return View();
-		}
+		public async Task<ActionResult> GetManufacturersOfStarshipsAndVehicles() {
+			var model = await _api.GetManufacturersOfStarshipsAndVehiclesAsync();
+			model = model.OrderByDescending(x => x.Starships.Count + x.Vehicles.Count).ToList();
 
+			return View(model);
+		}
 
     }
 }
