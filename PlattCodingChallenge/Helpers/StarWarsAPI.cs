@@ -13,20 +13,23 @@ namespace PlattCodingChallenge.Helpers
     {
 		private readonly string _APIBaseURL = "https://swapi.dev/api/";
 		
+		//Returns AllPlanetsViewModel with populated Planets list
+		//param: <bool> refreshCache - can force a call to the API, ignoring the cache
 		public async Task<AllPlanetsViewModel> GetAllPlanets(bool refreshCache = false)
 		{
 			AllPlanetsViewModel allPlanets = new AllPlanetsViewModel();
-
-			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
-			if (StarWarsAPICache.GetPlanets().Count() == 0 || refreshCache) {
+            // If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
+            List<PlanetDetailsViewModel> planets = StarWarsAPICache.GetData<List<PlanetDetailsViewModel>>("Planets");
+			if (planets.Count() == 0 || refreshCache) {
 				await CallGetAllPlanetsAsync();
 			}
 
-			allPlanets.Planets = StarWarsAPICache.GetPlanets();
-			allPlanets.CalculateAverageDiameter();
+			allPlanets.Planets = StarWarsAPICache.GetData<List<PlanetDetailsViewModel>>("Planets");
 			return allPlanets;
 		}
 
+		// returns a SinglePlanetViewModel - data for a single planet queried by planetid
+		// param: <int> planetid
         public async Task<SinglePlanetViewModel> GetPlanetById(int planetid) {
 			string url = _APIBaseURL + "planets/" + planetid.ToString() + "/";
 			
@@ -40,16 +43,20 @@ namespace PlattCodingChallenge.Helpers
 			}
 		}
 
-        public async Task<PlanetResidentsViewModel> GetResidentsOfPlanetAsync(string planetname)
+		// Returns PlanetResidentsViewModel with a List of PersonDetails
+		// param: <string> planetname
+		public async Task<PlanetResidentsViewModel> GetResidentsOfPlanetAsync(string planetname)
         {
-            if (StarWarsAPICache.GetPlanets().Count() == 0)
+			//If the planetsCache is empty, populate the planets cache
+			List<PlanetDetailsViewModel> planetsCache = StarWarsAPICache.GetData<List<PlanetDetailsViewModel>>("Planets");
+			if (planetsCache.Count() == 0)
             {
                 await CallGetAllPlanetsAsync();
             }
             PlanetResidentsViewModel planetResidents = new PlanetResidentsViewModel();
-
-            var planetsCache = StarWarsAPICache.GetPlanets();
-            PlanetDetailsViewModel planetDetail = planetsCache.Where(x => x.Name == planetname).FirstOrDefault();
+			// check the cache for most recent, so we can get the planet by Name and list of resident URL's
+			planetsCache = StarWarsAPICache.GetData<List<PlanetDetailsViewModel>>("Planets");
+			PlanetDetailsViewModel planetDetail = planetsCache.Where(x => x.Name == planetname).FirstOrDefault();
 
 			if (planetDetail != null) {
 				var residentURLS = planetDetail.ResidentURLs;
@@ -59,30 +66,28 @@ namespace PlattCodingChallenge.Helpers
 					residents.Add(await GetPersonFromURLAsync(url));
 				}
 				planetResidents.Residents = residents;
-
 			}
-
 			return planetResidents;
         }
 
-
+		// Returns VehicleSummaryViewModel with a List of VehicleDetailModel 
+		//param: <bool> refreshCache - can force a call to the API, ignoring the cache
 		public async Task<VehicleSummaryViewModel> GetVehicleSummaryAsync(bool refreshCache = false)
 		{
 			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
-			if (StarWarsAPICache.GetVehicles().Count() == 0 || refreshCache)
+			if (StarWarsAPICache.GetData<List<VehicleDetailModel>>("Vehicles").Count == 0 || refreshCache)
 			{
 				await CallGetAllVehiclesAsync();
 			}
-
-			List<VehicleDetailModel> vehicleDetails = StarWarsAPICache.GetVehicles();
-			List<VehicleDetailModel> knownCostVehicles = vehicleDetails.Where(x => x.CostInCredits != "unknown").ToList();
-			VehicleSummaryViewModel allVehicles = ParseVehicleStats(knownCostVehicles);
+						
+			VehicleSummaryViewModel allVehicles = ParseVehicleStats();
 
 			return allVehicles;
 		}
 
-
 		#region Helpers
+		// Returns a signel PersonDetails object
+		// param: <string> url
 		private async Task<PersonDetails> GetPersonFromURLAsync(string url)
 		{
 			using (var httpClient = new HttpClient())
@@ -95,10 +100,11 @@ namespace PlattCodingChallenge.Helpers
 			}
 		}
 
+		//Helper to make the call to the API to Get all planets
 		private async Task CallGetAllPlanetsAsync()
 		{
 			//Reset Cache
-			StarWarsAPICache.ResetPlanets();
+			StarWarsAPICache.ResetCache("Planets");
 
 			string url = _APIBaseURL + "planets/";
 			AllPlanetsJsonObject responseObject = new AllPlanetsJsonObject();
@@ -111,15 +117,16 @@ namespace PlattCodingChallenge.Helpers
 					string apiResponse = await response.Content.ReadAsStringAsync();
 					responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
 					responseObject.loaded = true;
-					StarWarsAPICache.AddRangeToPlanets(responseObject.details);
+					StarWarsAPICache.AddRangeToData("Planets", responseObject.details);
 				}
 
 			}
 		}
+		//Helper to make the call to the API to Get all vehicles
 		private async Task CallGetAllVehiclesAsync()
 		{
 			//Reset Cache
-			StarWarsAPICache.ResetVehicles();
+			StarWarsAPICache.ResetCache("Vehicles");
 
 			string url = _APIBaseURL + "vehicles/";
 			AllVehiclesJsonObject responseObject = new AllVehiclesJsonObject();
@@ -133,14 +140,19 @@ namespace PlattCodingChallenge.Helpers
 					string apiResponse = await response.Content.ReadAsStringAsync();
 					responseObject = JsonConvert.DeserializeObject<AllVehiclesJsonObject>(apiResponse);
 					responseObject.loaded = true;
-					StarWarsAPICache.AddRangeToVehicles(responseObject.details);
+					StarWarsAPICache.AddRangeToData("Vehicles", responseObject.details);
 				}
 			}
 		}
-		private VehicleSummaryViewModel ParseVehicleStats(List<VehicleDetailModel> knownCostVehicles)
+
+		// Helper to parse the vehicle data
+		// Returns VehicleSummaryViewModel
+		private VehicleSummaryViewModel ParseVehicleStats()
 		{
 			VehicleSummaryViewModel allVehicles = new VehicleSummaryViewModel();
 			List<VehicleStatsViewModel> stats = new List<VehicleStatsViewModel>();
+			List<VehicleDetailModel> vehicleDetails = StarWarsAPICache.GetData<List<VehicleDetailModel>>("Vehicles");
+			List<VehicleDetailModel> knownCostVehicles = vehicleDetails.Where(x => x.CostInCredits != "unknown").ToList();
 
 			foreach (var v in knownCostVehicles)
 			{

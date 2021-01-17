@@ -10,44 +10,74 @@ namespace PlattCodingChallenge.Helpers
     {
         private static List<PlanetDetailsViewModel> Planets = new List<PlanetDetailsViewModel>();
         private static List<VehicleDetailModel> Vehicles = new List<VehicleDetailModel>();
+        private static List<StarshipDetailsViewModel> Starships = new List<StarshipDetailsViewModel>();
 
-        public static List<PlanetDetailsViewModel> GetPlanets() {
-            return Planets;
+        public static dynamic GetData<T>(string type) {
+            switch (type)
+            {
+                case "Planets":
+                    return Planets;
+                case "Vehicles":
+                    return Vehicles;
+                case "Starships":
+                    return Starships;
+                default:
+                    return Planets;
+            }
         }
 
-        public static void SetPlanets(List<PlanetDetailsViewModel> planets) {
-            Planets = planets;
+        public static void SetData<T>(string type, IList<T> data) {
+            switch (type)
+            {
+                case "Planets":
+                    Planets = (List<PlanetDetailsViewModel>)data;
+                    break;
+                case "Vehicles":
+                    Vehicles = (List<VehicleDetailModel>)data; ;
+                    break;
+                case "Starships":
+                    Starships = (List<StarshipDetailsViewModel>)data; ;
+                    break;
+                default:
+                    Planets = (List<PlanetDetailsViewModel>)data;
+                    break;
+            }
         }
 
-        public static void AddRangeToPlanets(List<PlanetDetailsViewModel> planets){
-            Planets.AddRange(planets);
+        public static void AddRangeToData<T>(string type, IList<T> data) {
+            switch (type)
+            {
+                case "Planets":
+                    Planets.AddRange((List<PlanetDetailsViewModel>)data);
+                    break;
+                case "Vehicles":
+                    Vehicles.AddRange((List<VehicleDetailModel>)data);
+                    break;
+                case "Starships":
+                    Starships.AddRange((List<StarshipDetailsViewModel>)data);
+                    break;
+                default:
+                    Planets.AddRange((List<PlanetDetailsViewModel>)data);
+                    break;
+            }
         }
 
-        public static void ResetPlanets() { 
-            Planets = new List<PlanetDetailsViewModel>();
+        public static void ResetCache(string type) {
+            switch (type)
+            {
+                case "Planets":
+                    Planets = new List<PlanetDetailsViewModel>();
+                    break;
+                case "Vehicles":
+                    Vehicles = new List<VehicleDetailModel>();
+                    break;
+                case "Starships":
+                    Starships = new List<StarshipDetailsViewModel>();
+                    break;
+                default:
+                    Planets = new List<PlanetDetailsViewModel>();
+                    break;
+            }
         }
-        public static List<VehicleDetailModel> GetVehicles()
-        {
-            return Vehicles;
-        }
-
-        public static void SetVehicles(List<VehicleDetailModel> vehicles)
-        {
-            Vehicles = vehicles;
-        }
-
-        public static void AddRangeToVehicles(List<VehicleDetailModel> vehicles)
-        {
-            Vehicles.AddRange(vehicles);
-        }
-
-        public static void ResetVehicles()
-        {
-            Vehicles = new List<VehicleDetailModel>();
-        }
-
-
-
-
     }
 }

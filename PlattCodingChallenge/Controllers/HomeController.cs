@@ -22,8 +22,7 @@ namespace PlattCodingChallenge.Controllers
 
 			model = await _api.GetAllPlanets();
 			model.Planets = model.Planets.OrderBy(x => x, new Comparers.PlanetDiameterComparer()).ToList();
-			model.CalculateAverageDiameter();
-
+			
 			return View(model);
 		}
 

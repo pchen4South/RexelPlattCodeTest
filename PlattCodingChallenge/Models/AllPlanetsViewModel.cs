@@ -14,21 +14,29 @@ namespace PlattCodingChallenge.Models
 
 		public List<PlanetDetailsViewModel> Planets { get; set; }
 
-		public double AverageDiameter { get; set; }
+		public double AverageDiameter { 
+			get {
+				try
+				{
+					int count = 0;
+					int diameterCount = 0;
+					foreach (PlanetDetailsViewModel p in Planets)
+					{
+						int diameter = 0;
+						bool parsed = int.TryParse(p.Diameter, out diameter);
 
-		public void CalculateAverageDiameter() {
-			int count = 0;
-			int diameterCount = 0;
-			foreach (PlanetDetailsViewModel p in Planets) {
-				int diameter = 0;
-				bool parsed = int.TryParse(p.Diameter, out diameter);
-
-				if (parsed) {
-					count++;
-					diameterCount += diameter;
+						if (parsed)
+						{
+							count++;
+							diameterCount += diameter;
+						}
+					}
+					return (double)diameterCount / count;
+				}
+				catch {
+					return 0.0;
 				}
 			}
-			AverageDiameter = (double)diameterCount / count;
 		}
     }
 }
