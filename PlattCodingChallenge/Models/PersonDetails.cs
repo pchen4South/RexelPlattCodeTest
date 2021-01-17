@@ -6,7 +6,7 @@ using Newtonsoft.Json;
 
 namespace PlattCodingChallenge.Models
 {
-	public class ResidentSummary
+	public class PersonDetails
 	{
 		[JsonProperty("name")]
 		public string Name { get; set; }

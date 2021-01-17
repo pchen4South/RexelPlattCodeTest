@@ -13,7 +13,6 @@ namespace PlattCodingChallenge.Helpers
     {
 		private readonly string _APIBaseURL = "https://swapi.dev/api/";
 		
-
 		public async Task<AllPlanetsViewModel> GetAllPlanets(bool refreshCache = false)
 		{
 			AllPlanetsViewModel allPlanets = new AllPlanetsViewModel();
@@ -28,30 +27,7 @@ namespace PlattCodingChallenge.Helpers
 			return allPlanets;
 		}
 
-		private async Task CallGetAllPlanetsAsync() {
-			//Reset Cache
-			StarWarsAPICache.ResetPlanets();
-			
-			string url = _APIBaseURL + "planets/";
-			using (var httpClient = new HttpClient())
-			{
-				var response = await httpClient.GetAsync(url);
-				string apiResponse = await response.Content.ReadAsStringAsync();
-				AllPlanetsJsonObject responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
-				StarWarsAPICache.AddRangeToPlanets(responseObject.details);
-
-				while (responseObject.next != null)
-				{
-					response = await httpClient.GetAsync(responseObject.next);
-					apiResponse = await response.Content.ReadAsStringAsync();
-					responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
-					StarWarsAPICache.AddRangeToPlanets(responseObject.details);
-				}
-
-			}
-		}
-
-		public async Task<SinglePlanetViewModel> GetPlanetById(int planetid) {
+        public async Task<SinglePlanetViewModel> GetPlanetById(int planetid) {
 			string url = _APIBaseURL + "planets/" + planetid.ToString() + "/";
 			
 			using (var httpClient = new HttpClient())
@@ -77,19 +53,11 @@ namespace PlattCodingChallenge.Helpers
 
 			if (planetDetail != null) {
 				var residentURLS = planetDetail.ResidentURLs;
-				List<ResidentSummary> residents = new List<ResidentSummary>();
+				List<PersonDetails> residents = new List<PersonDetails>();
 
 				foreach (var url in residentURLS) {
-					using (var httpClient = new HttpClient())
-					{
-						ResidentSummary responseObject = new ResidentSummary();
-						var response = await httpClient.GetAsync(url);
-						string apiResponse = await response.Content.ReadAsStringAsync();
-						responseObject = JsonConvert.DeserializeObject<ResidentSummary>(apiResponse);
-						residents.Add(responseObject);
-					}
+					residents.Add(await GetPersonFromURLAsync(url));
 				}
-
 				planetResidents.Residents = residents;
 
 			}
@@ -97,22 +65,85 @@ namespace PlattCodingChallenge.Helpers
 			return planetResidents;
         }
 
+
 		public async Task<VehicleSummaryViewModel> GetVehicleSummaryAsync(bool refreshCache = false)
 		{
-			VehicleSummaryViewModel allVehicles = new VehicleSummaryViewModel();
-
 			// If cache is not being refreshed, return AllPlanetsViewModel with the cached planets
 			if (StarWarsAPICache.GetVehicles().Count() == 0 || refreshCache)
 			{
 				await CallGetAllVehiclesAsync();
 			}
 
-			var vehicleDetails = StarWarsAPICache.GetVehicles();
-			var knownCostVehicles = vehicleDetails.Where(x => x.CostInCredits != "unknown").ToList();
+			List<VehicleDetailModel> vehicleDetails = StarWarsAPICache.GetVehicles();
+			List<VehicleDetailModel> knownCostVehicles = vehicleDetails.Where(x => x.CostInCredits != "unknown").ToList();
+			VehicleSummaryViewModel allVehicles = ParseVehicleStats(knownCostVehicles);
 
+			return allVehicles;
+		}
+
+
+		#region Helpers
+		private async Task<PersonDetails> GetPersonFromURLAsync(string url)
+		{
+			using (var httpClient = new HttpClient())
+			{
+				PersonDetails responseObject = new PersonDetails();
+				var response = await httpClient.GetAsync(url);
+				string apiResponse = await response.Content.ReadAsStringAsync();
+				responseObject = JsonConvert.DeserializeObject<PersonDetails>(apiResponse);
+				return responseObject;
+			}
+		}
+
+		private async Task CallGetAllPlanetsAsync()
+		{
+			//Reset Cache
+			StarWarsAPICache.ResetPlanets();
+
+			string url = _APIBaseURL + "planets/";
+			AllPlanetsJsonObject responseObject = new AllPlanetsJsonObject();
+
+			using (var httpClient = new HttpClient())
+			{
+				while (responseObject.next != null || !responseObject.loaded)
+				{
+					var response = await httpClient.GetAsync(responseObject.loaded ? responseObject.next : url);
+					string apiResponse = await response.Content.ReadAsStringAsync();
+					responseObject = JsonConvert.DeserializeObject<AllPlanetsJsonObject>(apiResponse);
+					responseObject.loaded = true;
+					StarWarsAPICache.AddRangeToPlanets(responseObject.details);
+				}
+
+			}
+		}
+		private async Task CallGetAllVehiclesAsync()
+		{
+			//Reset Cache
+			StarWarsAPICache.ResetVehicles();
+
+			string url = _APIBaseURL + "vehicles/";
+			AllVehiclesJsonObject responseObject = new AllVehiclesJsonObject();
+
+			using (var httpClient = new HttpClient())
+			{
+
+				while (responseObject.next != null || !responseObject.loaded)
+				{
+					var response = await httpClient.GetAsync(responseObject.loaded ? responseObject.next : url);
+					string apiResponse = await response.Content.ReadAsStringAsync();
+					responseObject = JsonConvert.DeserializeObject<AllVehiclesJsonObject>(apiResponse);
+					responseObject.loaded = true;
+					StarWarsAPICache.AddRangeToVehicles(responseObject.details);
+				}
+			}
+		}
+		private VehicleSummaryViewModel ParseVehicleStats(List<VehicleDetailModel> knownCostVehicles)
+		{
+			VehicleSummaryViewModel allVehicles = new VehicleSummaryViewModel();
 			List<VehicleStatsViewModel> stats = new List<VehicleStatsViewModel>();
 
-			foreach (var v in knownCostVehicles) {
+			foreach (var v in knownCostVehicles)
+			{
 				var statsViewModel = stats.Where(x => x.ManufacturerName == v.Manufacturer).FirstOrDefault();
 				if (statsViewModel == null)
 				{
@@ -123,7 +154,8 @@ namespace PlattCodingChallenge.Helpers
 					};
 					stats.Add(statsViewModel);
 				}
-				else {
+				else
+				{
 					statsViewModel.VehicleCount += 1;
 				}
 
@@ -131,7 +163,7 @@ namespace PlattCodingChallenge.Helpers
 				{
 					statsViewModel.TotalCost += Int32.Parse(v.CostInCredits);
 				}
-				
+
 				statsViewModel.AverageCost = (double)statsViewModel.TotalCost / statsViewModel.VehicleCount;
 
 
@@ -143,28 +175,6 @@ namespace PlattCodingChallenge.Helpers
 			return allVehicles;
 		}
 
-		private async Task CallGetAllVehiclesAsync()
-		{
-			//Reset Cache
-			StarWarsAPICache.ResetVehicles();
-
-			string url = _APIBaseURL + "vehicles/";
-			using (var httpClient = new HttpClient())
-			{
-				var response = await httpClient.GetAsync(url);
-				string apiResponse = await response.Content.ReadAsStringAsync();
-				AllVehiclesJsonObject responseObject = JsonConvert.DeserializeObject<AllVehiclesJsonObject>(apiResponse);
-				StarWarsAPICache.AddRangeToVehicles(responseObject.details);
-
-				while (responseObject.next != null)
-				{
-					response = await httpClient.GetAsync(responseObject.next);
-					apiResponse = await response.Content.ReadAsStringAsync();
-					responseObject = JsonConvert.DeserializeObject<AllVehiclesJsonObject>(apiResponse);
-					StarWarsAPICache.AddRangeToVehicles(responseObject.details);
-				}
-			}
-		}
-
+		#endregion
 	}
 }

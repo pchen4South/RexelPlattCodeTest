@@ -9,9 +9,9 @@ namespace PlattCodingChallenge.Models
 	{
 		public PlanetResidentsViewModel()
 		{
-			Residents = new List<ResidentSummary>();
+			Residents = new List<PersonDetails>();
 		}
 
-		public List<ResidentSummary> Residents { get; set; }
+		public List<PersonDetails> Residents { get; set; }
     }
 }

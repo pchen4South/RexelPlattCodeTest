@@ -52,5 +52,11 @@ namespace PlattCodingChallenge.Controllers
 
 			return View(model);
 		}
+
+		public async Task<ActionResult> GetStarshipPilotsWithMultipleCrafts() {
+			return View();
+		}
+
+
     }
 }
